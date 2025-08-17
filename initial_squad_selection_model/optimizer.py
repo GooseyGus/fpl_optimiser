@@ -37,3 +37,4 @@ squad = create_squad(prob, df_players, starting_vars, bench_vars, captain_vars)
 
 # Display results
 display_in_window(prob, squad)
+
