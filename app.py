@@ -121,29 +121,6 @@ if st.button("Get Team Data", type="primary"):
                             use_container_width=True
                         )
                     
-                    # Export section
-                    st.markdown("---")
-                    st.markdown("### 📥 Export for Optimizer")
-                    
-                    # Add metadata to export
-                    df['budget'] = budget
-                    df['free_transfers'] = free_transfers
-                    df['gw'] = current_gw
-                    
-                    # CSV download
-                    csv = df.to_csv(index=False)
-                    
-                    col1, col2 = st.columns([1, 3])
-                    with col1:
-                        st.download_button(
-                            label="⬇️ Download CSV",
-                            data=csv,
-                            file_name=f"fpl_team_{team_id}_gw{current_gw}.csv",
-                            mime="text/csv"
-                        )
-                    with col2:
-                        st.info(f"Ready for optimization: GW{current_gw} with {free_transfers} FT and £{budget}m bank")
-                    
                 else:
                     st.error("Could not fetch squad data. Team might not have been picked yet.")
             else:
