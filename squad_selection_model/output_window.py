@@ -113,11 +113,11 @@ def display_in_window(prob, squad, vars=None, df_players=None, my_team=None):
     output.append("="*85)
     output.append("OUT TRANSFERS")
     output.append("-"*85)
-    output.append(f"{'Name':<20} {'Position':<12} {'Team':<15} {'£m':<6} {'Transfer Type':<20}")
+    output.append(f"{'Name':<20} {'Position':<12} {'Team':<15} {'£m':<6} {'expected_points':<5}  {'Transfer Type':<20}")
     output.append("-"*85)
     
     for _, player in squad['out_df'].iterrows():
-        output.append(f"{player['name']:<20} {player['position']:<12} {player['team']:<15} {player['price']:<6.1f} {player['transfer_type']:<20}")
+        output.append(f"{player['name']:<20} {player['position']:<12} {player['team']:<15} {player['price']:<6.1f} {player['expected_points']:<5.1f} {player['transfer_type']:<20}")
 
 
     team_text.insert('1.0', '\n'.join(output))

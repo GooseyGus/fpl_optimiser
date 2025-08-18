@@ -50,6 +50,7 @@ def load_fpl_data():
         'selected_by_percent': player['selected_by_percent'],
         'status': player['status'],  # a=available, i=injured, s=suspended, u=unavailable
         'gameweek': next_gw['id'] if next_gw else None,  # Add gameweek to each row
+        'minutes': player.get('minutes', 0),  # Add minutes played
     } for player in players])
             
     return df_players

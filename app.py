@@ -5,8 +5,8 @@ import pandas as pd
 
 st.set_page_config(page_title="FPL Team Fetcher", page_icon="⚽")
 
-st.title("⚽ FPL Team Fetcher")
-st.markdown("Get your team data - no login required!")
+st.title("FPL Team Fetcher")
+
 
 # Input fields
 col1, col2, col3 = st.columns(3)
@@ -19,6 +19,20 @@ with col2:
 
 with col3:
     free_transfers = st.selectbox("Free Transfers", [1, 2], index=0)
+
+# Instructions
+with st.expander("ℹ️ How to find your Team ID"):
+    st.markdown("""
+    1. Go to [Fantasy Premier League](https://fantasy.premierleague.com)
+    2. Click on "My Team" or "Points"
+    3. Look at the URL in your browser
+    4. Find the number after `/entry/` - that's your Team ID
+    
+    Example: `https://fantasy.premierleague.com/entry/2562804/event/20`
+    
+    Team ID = **2562804**
+    """)
+
 
 # Fetch button
 if st.button("Get Team Data", type="primary"):
@@ -50,7 +64,7 @@ if st.button("Get Team Data", type="primary"):
                     positions = {1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD'}
                     
                     # Show team info
-                    st.success(f"✅ Found team: **{team_data['name']}**")
+                    st.success(f"Found team: **{team_data['name']}**")
                     
                     col1, col2, col3, col4 = st.columns(4)
                     with col1:
@@ -140,18 +154,4 @@ if st.button("Get Team Data", type="primary"):
     else:
         st.warning("Please enter a Team ID")
 
-# Instructions
-with st.expander("ℹ️ How to find your Team ID"):
-    st.markdown("""
-    1. Go to [Fantasy Premier League](https://fantasy.premierleague.com)
-    2. Click on "My Team" or "Points"
-    3. Look at the URL in your browser
-    4. Find the number after `/entry/` - that's your Team ID
-    
-    Example: `https://fantasy.premierleague.com/entry/2562804/event/20`
-    
-    Team ID = **2562804**
-    """)
 
-st.markdown("---")
-st.caption("This app fetches public FPL data. Bank and Free Transfers must be entered manually as they require authentication.")

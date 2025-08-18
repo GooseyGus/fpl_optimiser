@@ -7,3 +7,4 @@ from .free_transfer_limit_constraint import *
 from .availability_constraint import *
 from .budget_constraint import *
 from .team_constraints import *
+from .bench_selection_constraints import *

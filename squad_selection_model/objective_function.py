@@ -3,11 +3,10 @@
 
 from pulp import lpSum
 
-def add_objective_function(prob, df_players, vars):
+def add_objective_function(prob, df_players, vars, penalty_points):
     """
     Objective: maximize expected points with transfer penalties and captain bonus.
     """
-
     # Regular points from players who are starting (stay, swap from bench, free transfer in)
     regular_points = lpSum([
         df_players.loc[idx, 'expected_points'] * (
@@ -20,7 +19,7 @@ def add_objective_function(prob, df_players, vars):
 
     # Paid transfers into starting XI (expected points minus 4 hit)
     paid_transfer_points = lpSum([
-        (df_players.loc[idx, 'expected_points'] - 4) * vars['in_to_starting_paid'].get(idx, 0)
+        (df_players.loc[idx, 'expected_points'] - penalty_points) * vars['in_to_starting_paid'].get(idx, 0)
         for idx in df_players.index
     ])
 
@@ -30,9 +29,9 @@ def add_objective_function(prob, df_players, vars):
         for idx in df_players.index
     ])
 
-    # Penalty for paid transfers into the bench (-4)
+    # Penalty for paid transfers into the bench (-penalty_points)
     bench_transfer_penalty = lpSum([
-        4 * vars['in_to_bench_paid'].get(idx, 0)
+        penalty_points * vars['in_to_bench_paid'].get(idx, 0)
         for idx in df_players.index
     ])
 
