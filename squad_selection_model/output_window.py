@@ -1,21 +1,22 @@
 # output_window_updated.py
-# Display squad results with transfer information
+# Display squad results with transfer information using tabulate for perfect alignment
 
 import pandas as pd
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 from pulp import LpStatus, value
+from tabulate import tabulate
 import os
 
 def display_in_window(prob, squad, vars=None, df_players=None, my_team=None):
     """
-    Display squad results in a tkinter window with transfer information
+    Display squad results in a tkinter window with transfer information using tabulate for perfect alignment
     """
     # Create window
     root = tk.Tk()
     gw_text = f" - Gameweek {squad['gameweek']}" if squad['gameweek'] else ""
     root.title(f"FPL Team Selection Results{gw_text}")
-    root.geometry("900x650")
+    root.geometry("1200x800")  # Larger window for better table display
     
     # Create notebook for tabs
     notebook = ttk.Notebook(root)
@@ -25,121 +26,184 @@ def display_in_window(prob, squad, vars=None, df_players=None, my_team=None):
     team_frame = ttk.Frame(notebook)
     notebook.add(team_frame, text="Team")
     
-    team_text = scrolledtext.ScrolledText(team_frame, wrap=tk.WORD, width=100, height=35, font=("Consolas", 10))
+    team_text = scrolledtext.ScrolledText(team_frame, wrap=tk.NONE, width=140, height=40, font=("Courier New", 9))
     team_text.pack(fill='both', expand=True)
     
-    # Build team output with transfer info
+    # Configure text tags for formatting
+    team_text.tag_configure("bold", font=("Courier New", 9, "bold"))
+    team_text.tag_configure("title", font=("Courier New", 12, "bold"))
+    team_text.tag_configure("header", font=("Courier New", 10, "bold"))
+    team_text.tag_configure("important", font=("Courier New", 9, "bold"), foreground="dark blue")
+    
+    # Insert content with formatting
+    def insert_with_formatting(text_widget, content_list):
+        """Insert text with appropriate formatting based on content type"""
+        for item in content_list:
+            if isinstance(item, tuple):
+                text, tag = item
+                text_widget.insert(tk.END, text + "\n", tag)
+            else:
+                text_widget.insert(tk.END, item + "\n")
+    
+    # Build team output with transfer info (using tuples for formatted text)
     output = []
-    output.append("="*85)
-    output.append(" "*30 + "FPL TEAM SELECTION")
+    output.append(("=" * 100, "bold"))
+    output.append((" " * 35 + "FPL TEAM SELECTION", "title"))
     if squad['gameweek']:
-        output.append(" "*33 + f"GAMEWEEK {squad['gameweek']}")
-    output.append("="*85)
-    output.append(f"\nSTATUS: {LpStatus[prob.status]}")
-    output.append(f"TOTAL EXPECTED POINTS: {value(prob.objective):.2f}")
+        output.append((" " * 38 + f"GAMEWEEK {squad['gameweek']}", "title"))
+    output.append(("=" * 100, "bold"))
+    output.append("")
+    output.append((f"STATUS: {LpStatus[prob.status]}", "important"))
+    output.append((f"TOTAL EXPECTED POINTS: {value(prob.objective):.2f}", "important"))
 
     # Look up captain and vice-captain
     if squad['captain_idx'] is not None and squad['captain_idx'] in squad['starting_df'].index:
         captain_name = squad['starting_df'].loc[squad['captain_idx'], 'name']
         captain_points = squad['starting_df'].loc[squad['captain_idx'], 'expected_points']  
-        output.append(f"CAPTAIN: {captain_name} ({captain_points:.1f} x 2 = {captain_points*2:.1f} pts)")
+        output.append((f"CAPTAIN: {captain_name} ({captain_points:.1f} x 2 = {captain_points*2:.1f} pts)", "important"))
     else:
-        output.append("CAPTAIN: None selected")
+        output.append(("CAPTAIN: None selected", "important"))
 
     if squad['vice_captain_idx'] is not None and squad['vice_captain_idx'] in squad['starting_df'].index:
         vice_captain_name = squad['starting_df'].loc[squad['vice_captain_idx'], 'name']
         vice_captain_points = squad['starting_df'].loc[squad['vice_captain_idx'], 'expected_points']  
-        output.append(f"VICE-CAPTAIN: {vice_captain_name} ({vice_captain_points:.1f} pts)")
+        output.append((f"VICE-CAPTAIN: {vice_captain_name} ({vice_captain_points:.1f} pts)", "important"))
     else:
-        output.append("VICE-CAPTAIN: None selected")
+        output.append(("VICE-CAPTAIN: None selected", "important"))
 
     # Add transfer summary if available
     if vars and df_players is not None:
         transfers_made = get_transfer_summary(vars, df_players)
         if transfers_made['total'] > 0:
-            output.append(f"\nTRANSFERS MADE: {transfers_made['total']}")
+            output.append("")
+            output.append((f"TRANSFERS MADE: {transfers_made['total']}", "header"))
             output.append(f"  Free: {transfers_made['free']}")
             output.append(f"  Paid (-4 pts each): {transfers_made['paid']}")
-            output.append(f"  Points Hit: -{transfers_made['paid'] * 4}")
+            output.append((f"  Points Hit: -{transfers_made['paid'] * 4}", "important"))
 
-    output.append(f"\n{'='*85}")
-    output.append("STARTING XI")
-    output.append("-"*85)
-    output.append(f"{'Name':<20} {'Position':<12} {'Team':<15} {'£m':<6} {'expected_points':<5}  {'Transfer':<20} {'Role':<4}")
-    output.append("-"*85)
+    output.append("")
+    output.append(("=" * 100, "bold"))
+    output.append(("STARTING XI", "header"))
+    output.append(("=" * 100, "bold"))
 
-
-    # Display Starting XI with proper transfer type
-
-
-    # sort squad['starting_df'] by position
-    position_order = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward']
-    squad['starting_df'] = squad['starting_df'].sort_values(by='position', key=lambda x: x.map({pos: i for i, pos in enumerate(position_order)}))
-
-    for _, player in squad['starting_df'].iterrows():
-        role = ""
-        if player.get('is_captain', False):
-            role = "(C)"
-        elif player.get('is_vice_captain', False):
-            role = "(VC)"
-
-                
-        output.append(f"{player['name']:<20} {player['position']:<12} {player['team']:<15} {player['price']:<6.1f} {player['expected_points']:<5.1f}  {player['transfer_type']:<20} {role:<4}")
+    # Prepare Starting XI data for tabulate
+    if not squad['starting_df'].empty:
+        # Sort by position
+        position_order = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward']
+        starting_sorted = squad['starting_df'].sort_values(
+            by='position', 
+            key=lambda x: x.map({pos: i for i, pos in enumerate(position_order)})
+        )
+        
+        starting_table_data = []
+        for _, player in starting_sorted.iterrows():
+            role = ""
+            if player.get('is_captain', False):
+                role = "(C)"
+            elif player.get('is_vice_captain', False):
+                role = "(VC)"
+            
+            starting_table_data.append([
+                player['name'],
+                player['position'],
+                player['team'],
+                player.get('opponent', 'No fixture'),
+                f"£{player['price']:.1f}m",
+                f"{player['expected_points']:.1f}",
+                player['transfer_type'],
+                role
+            ])
+        
+        starting_headers = ['Name', 'Position', 'Team', 'Opponent', 'Price', 'Points', 'Transfer', 'Role']
+        starting_table = tabulate(starting_table_data, headers=starting_headers, tablefmt='grid')
+        output.append(starting_table)
     
-    output.append(f"\n{'='*85}")
-    output.append("BENCH")
-    output.append("-"*85)
-    output.append(f"{'#':<3} {'Name':<20} {'Position':<12} {'Team':<15} {'£m':<6} {'expected_points':<5}  {'Transfer':<20}")
-    output.append("-"*85)
+    output.append("")
+    output.append(("=" * 100, "bold"))
+    output.append(("BENCH", "header"))
+    output.append(("=" * 100, "bold"))
     
-    # Display Bench with proper transfer type
-    for _, player in squad['bench_df'].iterrows():
-       
-        output.append(f"{player['bench_order']:<3} {player['name']:<20} {player['position']:<12} {player['team']:<15} {player['price']:<6.1f} {player['expected_points']:<5.1f}  {player['transfer_type']:<20}")
+    # Prepare Bench data for tabulate
+    if not squad['bench_df'].empty:
+        bench_table_data = []
+        for _, player in squad['bench_df'].iterrows():
+            bench_table_data.append([
+                player['bench_order'],
+                player['name'],
+                player['position'],
+                player['team'],
+                player.get('opponent', 'No fixture'),
+                f"£{player['price']:.1f}m",
+                f"{player['expected_points']:.1f}",
+                player['transfer_type']
+            ])
+        
+        bench_headers = ['#', 'Name', 'Position', 'Team', 'Opponent', 'Price', 'Points', 'Transfer']
+        bench_table = tabulate(bench_table_data, headers=bench_headers, tablefmt='grid')
+        output.append(bench_table)
     
-    output.append(f"\n{'='*85}")
-    output.append("SUMMARY")
-    output.append("-"*85)
+    output.append("")
+    output.append(("=" * 100, "bold"))
+    output.append(("SUMMARY", "header"))
+    output.append(("=" * 100, "bold"))
+    
     formation = squad['formation']
-    output.append(f"Formation: {formation.get('Goalkeeper', 0)}-{formation.get('Defender', 0)}-{formation.get('Midfielder', 0)}-{formation.get('Forward', 0)}")
-    output.append(f"Total Cost: £{squad['total_cost']:.1f}m ")
-
+    formation_str = f"{formation.get('Goalkeeper', 0)}-{formation.get('Defender', 0)}-{formation.get('Midfielder', 0)}-{formation.get('Forward', 0)}"
     
-    # add previous team cost
+    summary_data = [
+        ['Formation', formation_str],
+        ['Total Cost', f"£{squad['total_cost']:.1f}m"],
+    ]
+    
     if my_team:
-        output.append(f"Previous Team Cost: £{my_team.team_value:.1f}m")
-        output.append(f"Previous Bank Remaining: £{my_team.budget:.1f}m")
-
-    output.append("="*85)
-    output.append("OUT TRANSFERS")
-    output.append("-"*85)
-    output.append(f"{'Name':<20} {'Position':<12} {'Team':<15} {'£m':<6} {'expected_points':<5}  {'Transfer Type':<20}")
-    output.append("-"*85)
+        summary_data.extend([
+            ['Previous Team Cost', f"£{my_team.team_value:.1f}m"],
+            ['Previous Bank', f"£{my_team.budget:.1f}m"]
+        ])
     
-    for _, player in squad['out_df'].iterrows():
-        output.append(f"{player['name']:<20} {player['position']:<12} {player['team']:<15} {player['price']:<6.1f} {player['expected_points']:<5.1f} {player['transfer_type']:<20}")
+    summary_table = tabulate(summary_data, tablefmt='simple')
+    output.append(summary_table)
+    
+    # OUT TRANSFERS section
+    if not squad['out_df'].empty:
+        output.append("")
+        output.append(("=" * 100, "bold"))
+        output.append(("OUT TRANSFERS", "header"))
+        output.append(("=" * 100, "bold"))
+        
+        out_table_data = []
+        for _, player in squad['out_df'].iterrows():
+            out_table_data.append([
+                player['name'],
+                player['position'],
+                player['team'],
+                player.get('opponent', 'No fixture'),
+                f"£{player['price']:.1f}m",
+                f"{player['expected_points']:.1f}",
+                player['transfer_type']
+            ])
+        
+        out_headers = ['Name', 'Position', 'Team', 'Opponent', 'Price', 'Points', 'Transfer Type']
+        out_table = tabulate(out_table_data, headers=out_headers, tablefmt='grid')
+        output.append(out_table)
 
-
-    team_text.insert('1.0', '\n'.join(output))
+    # Insert content with formatting
+    insert_with_formatting(team_text, output)
     team_text.config(state='disabled')
 
-
-
-
-    
-    # Tab 2 Previous Gameweek
+    # Tab 2: Previous Gameweek
     prev_frame = ttk.Frame(notebook)
     notebook.add(prev_frame, text="Previous GW")
     
-    prev_text = scrolledtext.ScrolledText(prev_frame, wrap=tk.WORD, width=100, height=35, font=("Consolas", 10))
+    prev_text = scrolledtext.ScrolledText(prev_frame, wrap=tk.NONE, width=140, height=40, font=("Courier New", 9))
     prev_text.pack(fill='both', expand=True)
     
     prev_output = []
     
     if my_team is not None:
-        prev_output.append("="*70)
-        prev_output.append(" "*20 + f"PREVIOUS TEAM (GAMEWEEK {squad.get('gameweek', 1) - 1})")
-        prev_output.append("="*70)
+        prev_output.append("=" * 80)
+        prev_output.append(" " * 25 + f"PREVIOUS TEAM (GAMEWEEK {squad.get('gameweek', 1) - 1})")
+        prev_output.append("=" * 80)
         
         # Get team data from my_team
         team_df = my_team.current_team
@@ -148,33 +212,66 @@ def display_in_window(prob, squad, vars=None, df_players=None, my_team=None):
         prev_starting = team_df[team_df['is_starting'] == True].copy()
         prev_bench = team_df[team_df['is_starting'] == False].copy()
         
-        prev_output.append("\nSTARTING XI")
-        prev_output.append("-"*70)
-        prev_output.append(f"{'Name':<20} {'Position':<12} {'Team':<15} {'Price':<8} {'Points':<8} {'Role':<6}")
-        prev_output.append("-"*70)
+        # Starting XI table
+        if not prev_starting.empty:
+            prev_output.append("\nSTARTING XI")
+            prev_output.append("=" * 80)
+            
+            prev_starting_data = []
+            for _, player in prev_starting.iterrows():
+                role = "(C)" if player.get('is_captain', False) else "(VC)" if player.get('is_vice_captain', False) else ""
+                prev_starting_data.append([
+                    player['name'],
+                    player['position'],
+                    player['team'],
+                    player.get('opponent', 'No fixture'),
+                    f"£{player['price']:.1f}m",
+                    f"{player['expected_points']:.1f}",
+                    role
+                ])
+            
+            prev_starting_headers = ['Name', 'Position', 'Team', 'Opponent', 'Price', 'Points', 'Role']
+            prev_starting_table = tabulate(prev_starting_data, headers=prev_starting_headers, tablefmt='grid')
+            prev_output.append(prev_starting_table)
         
-        for _, player in prev_starting.iterrows():
-            role = "(C)" if player.get('is_captain', False) else "(VC)" if player.get('is_vice_captain', False) else ""
-            points = player.get('expected_points', 0)
-            prev_output.append(f"{player['name']:<20} {player['position']:<12} {player['team']:<15} £{player['price']:<7.1f} {player['expected_points']:<8.1f} {role:<6}")
-        
-        prev_output.append("\nBENCH")
-        prev_output.append("-"*70)
-        for _, player in prev_bench.iterrows():
-            points = player.get('expected_points', 0)
-            prev_output.append(f"{player.get('bench_order', '')} {player['name']:<20} {player['position']:<12} {player['team']:<15} £{player['price']:<7.1f} {player['expected_points']:<8.1f}")
+        # Bench table
+        if not prev_bench.empty:
+            prev_output.append("\nBENCH")
+            prev_output.append("=" * 80)
+            
+            prev_bench_data = []
+            for i, (_, player) in enumerate(prev_bench.iterrows(), 1):
+                prev_bench_data.append([
+                    i,
+                    player['name'],
+                    player['position'],
+                    player['team'],
+                    player.get('opponent', 'No fixture'),
+                    f"£{player['price']:.1f}m",
+                    f"{player['expected_points']:.1f}"
+                ])
+            
+            prev_bench_headers = ['#', 'Name', 'Position', 'Team', 'Opponent', 'Price', 'Points']
+            prev_bench_table = tabulate(prev_bench_data, headers=prev_bench_headers, tablefmt='grid')
+            prev_output.append(prev_bench_table)
         
         # Summary
-        prev_output.append(f"\n{'='*70}")
+        prev_output.append(f"\n{'=' * 80}")
         prev_output.append("PREVIOUS TEAM SUMMARY")
-        prev_output.append("-"*70)
-        prev_output.append(f"Total Squad Value: £{my_team.team_value:.1f}m")
-        prev_output.append(f"Bank: £{my_team.budget:.1f}m")
-        prev_output.append(f"Free Transfers: {my_team.free_transfers}")
+        prev_output.append("=" * 80)
         
-        # Formation
         formation_prev = prev_starting['position'].value_counts()
-        prev_output.append(f"Formation: {formation_prev.get('GK', 0)}-{formation_prev.get('DEF', 0)}-{formation_prev.get('MID', 0)}-{formation_prev.get('FWD', 0)}")
+        prev_formation = f"{formation_prev.get('GK', 0)}-{formation_prev.get('DEF', 0)}-{formation_prev.get('MID', 0)}-{formation_prev.get('FWD', 0)}"
+        
+        prev_summary_data = [
+            ['Total Squad Value', f"£{my_team.team_value:.1f}m"],
+            ['Bank', f"£{my_team.budget:.1f}m"],
+            ['Free Transfers', str(my_team.free_transfers)],
+            ['Formation', prev_formation]
+        ]
+        
+        prev_summary_table = tabulate(prev_summary_data, tablefmt='simple')
+        prev_output.append(prev_summary_table)
     else:
         prev_output.append("No previous gameweek data available")
         
@@ -186,8 +283,6 @@ def display_in_window(prob, squad, vars=None, df_players=None, my_team=None):
     close_btn.pack(pady=5)
     
     root.mainloop()
-
-
 
 
 def check_var(vars, category, subcategory, idx):
@@ -226,4 +321,3 @@ def get_transfer_summary(vars, df_players):
     transfers['total'] = free_count + paid_count
     
     return transfers
-

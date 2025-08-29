@@ -7,11 +7,15 @@ from datetime import datetime
 
 def load_fpl_data():
     """
-    Load FPL data from the API including player status/news and gameweek info
+    Load FPL data from the API including player status/news, gameweek info, and fixtures
     """
     # Fetch FPL data
     response = requests.get('https://fantasy.premierleague.com/api/bootstrap-static/')
     data = response.json()
+    
+    # Fetch fixture data
+    fixtures_response = requests.get('https://fantasy.premierleague.com/api/fixtures/')
+    fixtures = fixtures_response.json()
     
     # Extract the data we need
     players = data['elements']
@@ -39,12 +43,35 @@ def load_fpl_data():
     team_dict = {team['id']: team['name'] for team in teams}
     position_dict = {pos['id']: pos['singular_name'] for pos in positions}
     
+    # Process fixtures for next gameweek
+    opponent_dict = {}  # team_id -> opponent_team_id
+    if next_gw:
+        next_gw_fixtures = [f for f in fixtures if f['event'] == next_gw['id']]
+        print(f"Processing {len(next_gw_fixtures)} fixtures for GW {next_gw['id']}:")
+        
+        for fixture in next_gw_fixtures:
+            home_team = fixture['team_h']
+            away_team = fixture['team_a']
+            home_name = team_dict.get(home_team, f"Team {home_team}")
+            away_name = team_dict.get(away_team, f"Team {away_team}")
+            
+            # Map each team to their opponent
+            opponent_dict[home_team] = away_team
+            opponent_dict[away_team] = home_team
+            
+            print(f"  {home_name} vs {away_name}")
+        
+        print()  # Add blank line after fixtures
+    
     # Create DataFrame with all relevant fields
     df_players = pd.DataFrame([{
         'id': player['id'],
         'name': player['web_name'],
         'position': position_dict[player['element_type']],
         'team': team_dict[player['team']],
+        'team_id': player['team'],
+        'opponent_id': opponent_dict.get(player['team']),
+        'opponent': team_dict.get(opponent_dict.get(player['team']), 'No fixture') if opponent_dict.get(player['team']) else 'No fixture',
         'price': player['now_cost'] / 10,
         'expected_points': player['ep_next'],
         'selected_by_percent': player['selected_by_percent'],

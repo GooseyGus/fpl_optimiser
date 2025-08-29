@@ -2,7 +2,7 @@
 
 from pulp import lpSum
 
-def add_budget_constraint(prob, vars, df_players_gw1, df_players_gw2, 
+def add_budget_constraint(prob, vars, df_players_gw2, 
                          current_team, initial_bank=0):
     """
     Budget constraint for transfers considering price changes
@@ -43,7 +43,7 @@ def add_budget_constraint(prob, vars, df_players_gw1, df_players_gw2,
     )
 
     prob += (
-        total_team_cost <= 100 , "Budget_Constraint"
+        total_team_cost <= 99.9, "Budget_Constraint"
     )
 
     
