@@ -8,4 +8,3 @@ from .availability_constraint import *
 from .budget_constraint import *
 from .team_constraints import *
 from .bench_selection_constraints import *
-from .opposing_teams_constraint import *

@@ -21,8 +21,8 @@ prob = LpProblem("FPL_Transfer_Optimisation", LpMaximize)
 # Create decision variables
 vars = create_decision_variables(df_players_gw3)
 
-# Add objective function (now includes opposing teams penalty)
-prob = add_objective_function(prob, df_players_gw3, vars, penalty_points=0, opposing_teams_penalty=2)
+# Add objective function (now includes position-weighted opposing teams penalty)
+prob = add_objective_function(prob, df_players_gw3, vars, penalty_points=0, base_opposing_penalty=0.5)
 
 # Add constraints
 prob = add_squad_size_constraints(prob, vars, df_players_gw3)
@@ -52,33 +52,30 @@ prob = add_bench_selection_constraints(
 # Solve the problem
 prob.solve(PULP_CBC_CMD(msg=False))
 
-# After solving, check the actual values
+# Print transfer summary
+transfer_types = [
+    ('out_starting_paid', 'Sold', ''),
+    ('out_bench_paid', 'Sold', ' from bench'),
+    ('in_to_starting_paid', 'Bought', ''),
+    ('in_to_bench_paid', 'Bought', ''),
+    ('in_to_starting_free', 'Bought', ''),
+    ('in_to_bench_free', 'Bought', ''),
+    ('out_starting_free', 'Sold', ''),
+    ('out_bench_free', 'Sold', ' from bench')
+]
+
 for idx in df_players_gw3.index:
-    if vars['out_starting_paid'][idx].value() > 0:
-        print(f"Sold: {df_players_gw3.loc[idx, 'name']} for £{df_players_gw3.loc[idx, 'price']}m (out_starting_paid)")
-    if vars['out_bench_paid'][idx].value() > 0:
-        print(f"Sold: {df_players_gw3.loc[idx, 'name']} from bench for £{df_players_gw3.loc[idx, 'price']}m (out_bench_paid)")
-    if vars['in_to_starting_paid'][idx].value() > 0:
-        print(f"Bought: {df_players_gw3.loc[idx, 'name']} for £{df_players_gw3.loc[idx, 'price']}m (in_to_starting_paid)")
-    if vars['in_to_bench_paid'][idx].value() > 0:
-        print(f"Bought: {df_players_gw3.loc[idx, 'name']} for £{df_players_gw3.loc[idx, 'price']}m (in_to_bench_paid)")
-    if vars['in_to_starting_free'][idx].value() > 0:
-        print(f"Bought: {df_players_gw3.loc[idx, 'name']} for £{df_players_gw3.loc[idx, 'price']}m (in_to_starting_free)")
-    if vars['in_to_bench_free'][idx].value() > 0:
-        print(f"Bought: {df_players_gw3.loc[idx, 'name']} for £{df_players_gw3.loc[idx, 'price']}m (in_to_bench_free)")
-    if vars['out_starting_free'][idx].value() > 0:
-        print(f"Sold: {df_players_gw3.loc[idx, 'name']} for £{df_players_gw3.loc[idx, 'price']}m (out_starting_free)")
-    if vars['out_bench_free'][idx].value() > 0:
-        print(f"Sold: {df_players_gw3.loc[idx, 'name']} from bench for £{df_players_gw3.loc[idx, 'price']}m (out_bench_free)")
-
-
+    for var_name, action, location in transfer_types:
+        if vars[var_name][idx].value() > 0:
+            player = df_players_gw3.loc[idx]
+            print(f"{action}: {player['name']}{location} for £{player['price']}m ({var_name})")
 
 print(f"Initial bank: £{0}m")
 
 squad = process_optimization_results(vars, df_players_gw3, prob)
 
-# Analyze opposing teams in final squad
-from opposing_teams_penalty import analyze_opposing_pairs_in_squad
-analyze_opposing_pairs_in_squad(df_players_gw3, squad)
+# Analyze opposing teams in final squad (using consolidated module)
+from opposing_teams import analyze_opposing_pairs_in_squad
+analyze_opposing_pairs_in_squad(df_players_gw3, squad, base_penalty=1.0)
 
 display_in_window(prob, squad, vars, df_players_gw3, my_team)
