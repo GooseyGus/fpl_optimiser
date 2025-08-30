@@ -9,11 +9,22 @@ from constraints import *
 from squad_creator import *
 from team_class import Team
 from output_window import display_in_window
+from fdr import CSVFDRCalculator
 
 # Initialize team
 my_team = Team(team_id=2562804, budget=0, free_transfers=1)
-# Load player data
-df_players_gw3 = pd.read_csv('data/fpl_players_gw_3.csv')   
+
+# Load player data (use the FDR-enhanced version if available)
+try:
+    df_players_gw3 = pd.read_csv('data/fpl_players_gw_3_with_fdr.csv')
+    print("✅ Loaded FDR-enhanced player data")
+except FileNotFoundError:
+    df_players_gw3 = pd.read_csv('data/fpl_players_gw_3.csv')
+    print("⚠️  Using basic player data (no FDR)")
+
+# Initialize FDR calculator
+fdr_calculator = CSVFDRCalculator()
+print(f"📊 FDR Calculator initialized with {len(fdr_calculator.team_fdr_ratings)} teams")   
 
 # Create optimization problem
 prob = LpProblem("FPL_Transfer_Optimisation", LpMaximize)
@@ -21,8 +32,14 @@ prob = LpProblem("FPL_Transfer_Optimisation", LpMaximize)
 # Create decision variables
 vars = create_decision_variables(df_players_gw3)
 
-# Add objective function (now includes position-weighted opposing teams penalty)
-prob = add_objective_function(prob, df_players_gw3, vars, penalty_points=0, base_opposing_penalty=0.5)
+# Add objective function with FDR penalties
+prob = add_objective_function(
+    prob, df_players_gw3, vars, 
+    penalty_points=0, 
+    base_opposing_penalty=0.5,
+    fdr_calculator=fdr_calculator,
+    fdr_penalty_weight=1.0  # Adjust this to control FDR impact
+)
 
 # Add constraints
 prob = add_squad_size_constraints(prob, vars, df_players_gw3)
@@ -41,7 +58,7 @@ prob = add_bench_selection_constraints(
     min_minutes=0,           # Lower minutes requirement
     min_price=0,           # Minimum £4.0m
     max_price=100,           # Maximum £5.5m (tighter budget)
-    min_expected_points=7,  # Lower points threshold
+    min_expected_points=7.1,  # Lower points threshold
     max_expected_points=100,  # Avoid premium players
     min_ownership=0,        # No minimum ownership
     max_ownership=100,       # Avoid very popular players
@@ -77,5 +94,29 @@ squad = process_optimization_results(vars, df_players_gw3, prob)
 # Analyze opposing teams in final squad (using consolidated module)
 from opposing_teams import analyze_opposing_pairs_in_squad
 analyze_opposing_pairs_in_squad(df_players_gw3, squad, base_penalty=1.0)
+
+# Analyze FDR impact in final squad
+print("\n🎯 FDR ANALYSIS OF SELECTED SQUAD")
+print("=" * 50)
+starting_df = squad['starting_df']
+total_fdr_bonus = 0
+
+for idx, player in starting_df.iterrows():
+    team_id = player['team_id']
+    fdr_rating = fdr_calculator.team_fdr_ratings.get(team_id, 0)
+    fdr_bonus = fdr_calculator.get_fdr_penalty_points(team_id, 1.0)
+    total_fdr_bonus += fdr_bonus
+    
+    bonus_indicator = "💚" if fdr_bonus > 0 else "❤️" if fdr_bonus < 0 else "💛"
+    print(f"{bonus_indicator} {player['web_name']} ({player['team']}): {fdr_rating:.1f} FDR ({fdr_bonus:+.1f})")
+
+print(f"\n📊 Total FDR Bonus/Penalty: {total_fdr_bonus:+.1f} points")
+
+if total_fdr_bonus > 0:
+    print("✅ Squad benefits from easier fixtures!")
+elif total_fdr_bonus < 0:
+    print("⚠️  Squad faces difficult fixtures")
+else:
+    print("➡️  Squad has neutral fixture difficulty")
 
 display_in_window(prob, squad, vars, df_players_gw3, my_team)
