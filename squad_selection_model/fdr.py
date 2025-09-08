@@ -220,7 +220,7 @@ def get_team_fdr_from_csv(csv_path='data/fpl_players_gw_3_with_fdr.csv'):
 class CSVFDRCalculator:
     """FDR Calculator that uses pre-calculated CSV data"""
     
-    def __init__(self, csv_path='data/fpl_players_gw_3_with_fdr.csv'):
+    def __init__(self, csv_path='data/fpl_players_gw_4.csv'):
         self.team_fdr_ratings = get_team_fdr_from_csv(csv_path)
         
     def get_fdr_multiplier(self, team_id):

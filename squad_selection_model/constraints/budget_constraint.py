@@ -43,7 +43,7 @@ def add_budget_constraint(prob, vars, df_players_gw2,
     )
 
     prob += (
-        total_team_cost <= 99.9, "Budget_Constraint"
+        total_team_cost <= 100, "Budget_Constraint"
     )
 
     
