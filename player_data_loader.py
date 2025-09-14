@@ -122,5 +122,5 @@ if __name__ == "__main__":
     #save_fpl_data(df_players)
 
     # Get data for Gameweek 4
-    df_gw4 = load_fpl_data(gameweek=4)
+    df_gw4 = load_fpl_data(gameweek=1)
     save_fpl_data(df_gw4, base_path='data/')

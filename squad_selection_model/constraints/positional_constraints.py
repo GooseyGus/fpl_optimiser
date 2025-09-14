@@ -42,7 +42,7 @@ def add_positional_constraints(prob, vars, df_players):
     # -------------------
     prob += lpSum([starting_sum(idx) for idx in gk_indices]) == 1, "Starting_GK_1"
     prob += lpSum([starting_sum(idx) for idx in def_indices]) >= 3, "Starting_DEF_Min_3"
-    prob += lpSum([starting_sum(idx) for idx in def_indices]) <= 4, "Starting_DEF_Max_5"
+    prob += lpSum([starting_sum(idx) for idx in def_indices]) <= 5, "Starting_DEF_Max_5"
     prob += lpSum([starting_sum(idx) for idx in mid_indices]) >= 2, "Starting_MID_Min_2"
     prob += lpSum([starting_sum(idx) for idx in mid_indices]) <= 5, "Starting_MID_Max_5"
     prob += lpSum([starting_sum(idx) for idx in fwd_indices]) >= 1, "Starting_FWD_Min_1"
