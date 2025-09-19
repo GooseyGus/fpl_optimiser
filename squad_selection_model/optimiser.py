@@ -14,7 +14,7 @@ from fdr import CSVFDRCalculator
 # Initialize team
 my_team = Team(team_id=2562804, budget=0, free_transfers=1)
 
-df_players = pd.read_csv('data/fpl_players_gw_4.csv')
+df_players = pd.read_csv('data/fpl_players_gw_5.csv')
 
 # Initialize FDR calculator
 fdr_calculator = CSVFDRCalculator()

@@ -121,6 +121,8 @@ if __name__ == "__main__":
     # Save to CSV with gameweek in filename
     #save_fpl_data(df_players)
 
-    # Get data for Gameweek 4
-    df_gw4 = load_fpl_data(gameweek=1)
-    save_fpl_data(df_gw4, base_path='data/')
+    # Get data for Gameweek 5
+    df_gw5 = load_fpl_data(gameweek=5)
+    save_fpl_data(df_gw5, base_path='data/')
+
+

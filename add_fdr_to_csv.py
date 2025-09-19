@@ -185,9 +185,9 @@ if __name__ == "__main__":
     print("=" * 50)
     
     # Configuration options
-    START_GW = 4  # None = use current gameweek, or specify like 3, 4, etc.
+    START_GW = 1  # None = use current gameweek, or specify like 3, 4, etc.
     WEEKS_AHEAD = 5  # Number of gameweeks to look ahead
-    CSV_PATH = 'data/fpl_players_gw_4.csv'  # None = auto-detect, or specify like 'data/fpl_players_gw_4.csv'
+    CSV_PATH = 'data/fpl_players_gw_1.csv'  # None = auto-detect, or specify like 'data/fpl_players_gw_4.csv'
     SAVE_CSV = False  # Set to True if you want to save to CSV, False to just return DataFrame
     
     print(f"Configuration:")
@@ -201,7 +201,7 @@ if __name__ == "__main__":
     updated_df = append_fdr_to_df(CSV_PATH, START_GW, WEEKS_AHEAD, SAVE_CSV)
     
     if updated_df is not None:
-        updated_df.to_csv('data/fpl_players_gw_4.csv', index=False)
+        updated_df.to_csv('data/fpl_players_gw_1.csv', index=False)
         print("\nFDR Analysis Complete!")
         print(f"DataFrame updated with FDR ratings for next {WEEKS_AHEAD} gameweeks")
         print(f"Shape: {updated_df.shape}")
